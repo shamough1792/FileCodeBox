@@ -4,6 +4,8 @@ FROM --platform=$BUILDPLATFORM node:20-alpine AS frontend-builder
 
 ARG FRONTEND_2024_REF=main
 ARG FRONTEND_2023_REF=main
+ARG FRONTEND_2024_REPO=https://github.com/vastsa/FileCodeBoxFronted.git
+ARG FRONTEND_2023_REPO=https://github.com/vastsa/FileCodeBoxFronted2023.git
 
 RUN apk add --no-cache git python3 make g++
 
@@ -13,7 +15,7 @@ RUN corepack enable && \
 WORKDIR /build
 
 # 克隆并构建固定版本的 2024 主题
-RUN git clone --filter=blob:none --no-checkout https://github.com/vastsa/FileCodeBoxFronted.git /build/fronted-2024 && \
+RUN git clone --filter=blob:none --no-checkout "${FRONTEND_2024_REPO}" /build/fronted-2024 && \
     cd /build/fronted-2024 && \
     git fetch --depth 1 origin "${FRONTEND_2024_REF}" && \
     git checkout --detach FETCH_HEAD && \
@@ -21,7 +23,7 @@ RUN git clone --filter=blob:none --no-checkout https://github.com/vastsa/FileCod
     VITE_GIT_COMMIT="$(git rev-parse HEAD)" pnpm run build
 
 # 克隆并构建固定版本的 2023 主题
-RUN git clone --filter=blob:none --no-checkout https://github.com/vastsa/FileCodeBoxFronted2023.git /build/fronted-2023 && \
+RUN git clone --filter=blob:none --no-checkout "${FRONTEND_2023_REPO}" /build/fronted-2023 && \
     cd /build/fronted-2023 && \
     git fetch --depth 1 origin "${FRONTEND_2023_REF}" && \
     git checkout --detach FETCH_HEAD && \

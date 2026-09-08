@@ -94,6 +94,140 @@ EXPIRE_STYLE_OPTIONS = [
     ("count", "按取件次数"),
 ]
 
+SETUP_TRANSLATIONS = {
+    "zh-CN": {
+        "html_lang": "zh-CN",
+        "subtitle": "首次配置管理员密码、上传限制和取件策略，后续可在后台调整。",
+        "wizard": "首次配置向导",
+        "basic_settings": "基础设置",
+        "site_name": "站点名称",
+        "site_placeholder": "文件快递柜 - FileCodeBox",
+        "admin_password": "管理员密码",
+        "confirm_password": "确认管理员密码",
+        "upload_settings": "上传设置",
+        "file_size_limit": "单文件大小限制",
+        "file_size_unit": "文件大小单位",
+        "upload_rate": "上传频率",
+        "count_per_minute": "次数 / 分钟",
+        "upload_window": "上传检测窗口分钟",
+        "guest_upload": "允许游客上传",
+        "chunk_upload": "启用切片上传",
+        "retrieve_settings": "取件与保存",
+        "retrieve_error_rate": "取件错误频率",
+        "retrieve_window": "取件错误检测窗口分钟",
+        "login_error_rate": "管理员登录失败频率",
+        "login_window": "登录失败检测窗口分钟",
+        "max_save_time": "最长保存时间",
+        "max_save_time_unit": "最长保存时间单位",
+        "code_type": "提取码类型",
+        "available_policies": "可用策略",
+        "expiration_methods": "允许的过期方式",
+        "allowed_file_types": "允许文件类型",
+        "file_types_help": "逗号分隔，* 表示不限制",
+        "file_types_placeholder": "* 或 .zip, image/*",
+        "complete_setup": "完成初始化",
+        "seconds": "秒",
+        "minutes": "分钟",
+        "hours": "小时",
+        "days": "天",
+        "number": "数字",
+        "random": "随机字符",
+        "expire_styles": {
+            "day": "按天",
+            "hour": "按小时",
+            "minute": "按分钟",
+            "forever": "永久",
+            "count": "按取件次数",
+        },
+        "success_title": "初始化完成",
+        "success_message": "管理员密码已设置，请使用刚才的密码登录后台。",
+        "enter_admin": "进入后台",
+    },
+    "zh-TW": {
+        "html_lang": "zh-TW",
+        "subtitle": "首次設定管理員密碼、上傳限制與取件策略，之後可在後台調整。",
+        "wizard": "首次設定精靈",
+        "basic_settings": "基本設定",
+        "site_name": "網站名稱",
+        "site_placeholder": "檔案快遞櫃 - FileCodeBox",
+        "admin_password": "管理員密碼",
+        "confirm_password": "確認管理員密碼",
+        "upload_settings": "上傳設定",
+        "file_size_limit": "單檔案大小限制",
+        "file_size_unit": "檔案大小單位",
+        "upload_rate": "上傳頻率",
+        "count_per_minute": "次數 / 分鐘",
+        "upload_window": "上傳檢測視窗分鐘",
+        "guest_upload": "允許訪客上傳",
+        "chunk_upload": "啟用分片上傳",
+        "retrieve_settings": "取件與儲存",
+        "retrieve_error_rate": "取件錯誤頻率",
+        "retrieve_window": "取件錯誤檢測視窗分鐘",
+        "login_error_rate": "管理員登入失敗頻率",
+        "login_window": "登入失敗檢測視窗分鐘",
+        "max_save_time": "最長儲存時間",
+        "max_save_time_unit": "最長儲存時間單位",
+        "code_type": "取件碼類型",
+        "available_policies": "可用策略",
+        "expiration_methods": "允許的過期方式",
+        "allowed_file_types": "允許檔案類型",
+        "file_types_help": "以逗號分隔，* 表示不限制",
+        "file_types_placeholder": "* 或 .zip, image/*",
+        "complete_setup": "完成初始化",
+        "seconds": "秒",
+        "minutes": "分鐘",
+        "hours": "小時",
+        "days": "天",
+        "number": "數字",
+        "random": "隨機字元",
+        "expire_styles": {
+            "day": "按天",
+            "hour": "按小時",
+            "minute": "按分鐘",
+            "forever": "永久",
+            "count": "按取件次數",
+        },
+        "success_title": "初始化完成",
+        "success_message": "管理員密碼已設定，請使用剛才的密碼登入後台。",
+        "enter_admin": "進入後台",
+    },
+}
+
+
+def normalize_setup_locale(locale: str | None) -> str:
+    normalized = (locale or "").strip().lower().replace("_", "-")
+    if normalized == "zh-tw" or normalized.startswith("zh-tw-"):
+        return "zh-TW"
+    if normalized == "zh-hant" or normalized.startswith("zh-hant-"):
+        return "zh-TW"
+    if normalized in {"zh-hk", "zh-mo"}:
+        return "zh-TW"
+    return "zh-CN"
+
+
+def get_setup_locale(request: Request | None) -> str:
+    if request is None:
+        return "zh-CN"
+    accept_language = request.headers.get("accept-language", "")
+    for language in accept_language.split(","):
+        candidate = language.split(";", 1)[0].strip()
+        if candidate:
+            return normalize_setup_locale(candidate)
+    return "zh-CN"
+
+
+def setup_text(locale: str) -> dict:
+    return SETUP_TRANSLATIONS[normalize_setup_locale(locale)]
+
+
+def iter_setup_translation_pairs(source: dict, target: dict):
+    for key, value in source.items():
+        target_value = target.get(key)
+        if isinstance(value, dict) and isinstance(target_value, dict):
+            yield from iter_setup_translation_pairs(value, target_value)
+        elif isinstance(value, str) and isinstance(target_value, str) and value != target_value:
+            yield value, target_value
+
 
 def get_form_value(data: dict, key: str, default: str = "") -> str:
     value = data.get(key, default)
@@ -124,16 +258,20 @@ def parse_int_field(
     label: str,
     min_value: int = 0,
     max_value: int | None = None,
+    locale: str = "zh-CN",
 ) -> int:
     raw_value = get_form_value(data, key, str(default)).strip()
     try:
         value = int(raw_value)
     except ValueError:
-        raise ValueError(f"{label} 必须是整数")
+        suffix = "必須是整數" if locale == "zh-TW" else "必须是整数"
+        raise ValueError(f"{label} {suffix}")
     if value < min_value:
-        raise ValueError(f"{label} 不能小于 {min_value}")
+        suffix = "不能小於" if locale == "zh-TW" else "不能小于"
+        raise ValueError(f"{label} {suffix} {min_value}")
     if max_value is not None and value > max_value:
-        raise ValueError(f"{label} 不能大于 {max_value}")
+        suffix = "不能大於" if locale == "zh-TW" else "不能大于"
+        raise ValueError(f"{label} {suffix} {max_value}")
     return value
 
 
@@ -142,32 +280,34 @@ def parse_allowed_file_types(value: str) -> list[str]:
     return items or ["*"]
 
 
-def parse_setup_options(data: dict) -> dict:
+def parse_setup_options(data: dict, locale: str = "zh-CN") -> dict:
+    locale = normalize_setup_locale(locale)
+    t = setup_text(locale)
     upload_size_unit = get_form_value(data, "upload_size_unit", "MB").upper()
     if upload_size_unit not in FILE_SIZE_UNITS:
-        raise ValueError("文件大小单位不正确")
+        raise ValueError("檔案大小單位不正確" if locale == "zh-TW" else "文件大小单位不正确")
     upload_size_value = parse_int_field(
-        data, "upload_size_value", 10, "文件大小限制", min_value=1
+        data, "upload_size_value", 10, t["file_size_limit"], min_value=1, locale=locale
     )
 
     save_time_unit = get_form_value(data, "save_time_unit", "day")
     if save_time_unit not in SAVE_TIME_UNITS:
-        raise ValueError("最长保存时间单位不正确")
+        raise ValueError("最長儲存時間單位不正確" if locale == "zh-TW" else "最长保存时间单位不正确")
     save_time_value = parse_int_field(
-        data, "save_time_value", 0, "最长保存时间", min_value=0
+        data, "save_time_value", 0, t["max_save_time"], min_value=0, locale=locale
     )
 
     expire_styles = get_form_list(data, "expireStyle")
     valid_expire_styles = {style for style, _label in EXPIRE_STYLE_OPTIONS}
     expire_styles = [style for style in expire_styles if style in valid_expire_styles]
     if not expire_styles:
-        raise ValueError("至少需要选择一种过期方式")
+        raise ValueError("至少需要選擇一種過期方式" if locale == "zh-TW" else "至少需要选择一种过期方式")
 
     code_generate_type = get_form_value(
         data, "code_generate_type", DEFAULT_CONFIG["code_generate_type"]
     )
     if code_generate_type not in {"number", "secret"}:
-        raise ValueError("提取码类型不正确")
+        raise ValueError("取件碼類型不正確" if locale == "zh-TW" else "提取码类型不正确")
 
     return {
         "allowed_file_types": parse_allowed_file_types(
@@ -176,34 +316,36 @@ def parse_setup_options(data: dict) -> dict:
         "code_generate_type": code_generate_type,
         "enableChunk": int(normalize_bool_field(data, "enableChunk", False)),
         "errorCount": parse_int_field(
-            data, "errorCount", DEFAULT_CONFIG["errorCount"], "取件错误次数限制", 1
+            data, "errorCount", DEFAULT_CONFIG["errorCount"], "取件錯誤次數限制" if locale == "zh-TW" else "取件错误次数限制", 1, locale=locale
         ),
         "errorMinute": parse_int_field(
-            data, "errorMinute", DEFAULT_CONFIG["errorMinute"], "取件错误检测窗口", 1
+            data, "errorMinute", DEFAULT_CONFIG["errorMinute"], "取件錯誤檢測視窗" if locale == "zh-TW" else "取件错误检测窗口", 1, locale=locale
         ),
         "loginCount": parse_int_field(
-            data, "loginCount", DEFAULT_CONFIG["loginCount"], "登录失败次数限制", 1
+            data, "loginCount", DEFAULT_CONFIG["loginCount"], "登入失敗次數限制" if locale == "zh-TW" else "登录失败次数限制", 1, locale=locale
         ),
         "loginMinute": parse_int_field(
-            data, "loginMinute", DEFAULT_CONFIG["loginMinute"], "登录失败检测窗口", 1
+            data, "loginMinute", DEFAULT_CONFIG["loginMinute"], "登入失敗檢測視窗" if locale == "zh-TW" else "登录失败检测窗口", 1, locale=locale
         ),
         "expireStyle": expire_styles,
         "max_save_seconds": save_time_value * SAVE_TIME_UNITS[save_time_unit],
         "openUpload": int(normalize_bool_field(data, "openUpload", True)),
         "uploadCount": parse_int_field(
-            data, "uploadCount", DEFAULT_CONFIG["uploadCount"], "上传次数限制", 1
+            data, "uploadCount", DEFAULT_CONFIG["uploadCount"], "上傳次數限制" if locale == "zh-TW" else "上传次数限制", 1, locale=locale
         ),
         "uploadMinute": parse_int_field(
-            data, "uploadMinute", DEFAULT_CONFIG["uploadMinute"], "上传检测窗口", 1
+            data, "uploadMinute", DEFAULT_CONFIG["uploadMinute"], "上傳檢測視窗" if locale == "zh-TW" else "上传检测窗口", 1, locale=locale
         ),
         "uploadSize": upload_size_value * FILE_SIZE_UNITS[upload_size_unit],
     }
 
 
-def build_expire_style_inputs(selected_styles: list[str]) -> str:
+def build_expire_style_inputs(selected_styles: list[str], locale: str = "zh-CN") -> str:
+    t = setup_text(locale)
     inputs = []
     selected = set(selected_styles)
-    for style, label in EXPIRE_STYLE_OPTIONS:
+    for style, _label in EXPIRE_STYLE_OPTIONS:
+        label = t["expire_styles"][style]
         checked = " checked" if style in selected else ""
         inputs.append(
             f'<label class="check"><input type="checkbox" name="expireStyle" value="{style}"{checked}> {label}</label>'
@@ -211,7 +353,10 @@ def build_expire_style_inputs(selected_styles: list[str]) -> str:
     return "\n        ".join(inputs)
 
 
-def build_setup_page(error: str = "", form: dict | None = None) -> str:
+def build_setup_page(
+    error: str = "", form: dict | None = None, locale: str = "zh-CN"
+) -> str:
+    locale = normalize_setup_locale(locale)
     form = form or {}
     escaped_error = html.escape(error)
     escaped_site_name = html.escape(
@@ -252,7 +397,7 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
     selected_expire_styles = get_form_list(form, "expireStyle") or list(
         DEFAULT_CONFIG["expireStyle"]
     )
-    expire_style_inputs = build_expire_style_inputs(selected_expire_styles)
+    expire_style_inputs = build_expire_style_inputs(selected_expire_styles, locale)
     size_unit_options = "\n".join(
         f'<option value="{unit}"{" selected" if unit == upload_size_unit else ""}>{unit}</option>'
         for unit in FILE_SIZE_UNITS
@@ -273,7 +418,7 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
     error_block = (
         f'<div class="alert" role="alert">{escaped_error}</div>' if escaped_error else ""
     )
-    return f"""<!doctype html>
+    content = f"""<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -628,10 +773,19 @@ def build_setup_page(error: str = "", form: dict | None = None) -> str:
   </main>
 </body>
 </html>"""
+    if locale == "zh-TW":
+        translations = SETUP_TRANSLATIONS["zh-CN"]
+        traditional = SETUP_TRANSLATIONS["zh-TW"]
+        replacements = iter_setup_translation_pairs(translations, traditional)
+        for source, target in sorted(replacements, key=lambda item: len(item[0]), reverse=True):
+            content = content.replace(source, target)
+        content = content.replace('<html lang="zh-CN">', '<html lang="zh-TW">')
+    return content
 
 
-def build_setup_success_page() -> str:
-    return """<!doctype html>
+def build_setup_success_page(locale: str = "zh-CN") -> str:
+    locale = normalize_setup_locale(locale)
+    content = """<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
@@ -682,6 +836,12 @@ def build_setup_success_page() -> str:
   </main>
 </body>
 </html>"""
+    if locale == "zh-TW":
+        content = content.replace("初始化完成", "初始化完成")
+        content = content.replace("管理员密码已设置，请使用刚才的密码登录后台。", "管理員密碼已設定，請使用剛才的密碼登入後台。")
+        content = content.replace("进入后台", "進入後台")
+        content = content.replace('<html lang="zh-CN">', '<html lang="zh-TW">')
+    return content
 
 
 def setup_response(content: str, status_code: int = 200) -> HTMLResponse:
@@ -772,7 +932,7 @@ async def refresh_settings_middleware(request, call_next):
     await refresh_settings()
     if not is_runtime_initialized() and not is_setup_path(request.url.path):
         if wants_html_response(request):
-            return setup_response(build_setup_page())
+            return setup_response(build_setup_page(locale=get_setup_locale(request)))
         return JSONResponse(
             status_code=428,
             content={
@@ -811,10 +971,10 @@ app.include_router(admin_api)
 
 @app.get("/setup", include_in_schema=False)
 @app.get("/setup/", include_in_schema=False)
-async def setup_page():
+async def setup_page(request: Request):
     if is_runtime_initialized():
         return RedirectResponse(url="/", status_code=303)
-    return setup_response(build_setup_page())
+    return setup_response(build_setup_page(locale=get_setup_locale(request)))
 
 
 @app.post("/setup", include_in_schema=False)
@@ -828,22 +988,24 @@ async def setup_submit(request: Request):
     confirm_password = str(data.get("confirm_password") or "")
     site_name = str(data.get("site_name") or "")
 
+    locale = get_setup_locale(request)
     if admin_password != confirm_password:
-        return setup_response(build_setup_page("两次输入的管理员密码不一致", data), 400)
+        error = "管理員密碼與確認密碼不一致" if locale == "zh-TW" else "两次输入的管理员密码不一致"
+        return setup_response(build_setup_page(error, data, locale), 400)
 
     try:
-        setup_options = parse_setup_options(data)
+        setup_options = parse_setup_options(data, locale)
         await initialize_system(
             admin_password=admin_password,
             site_name=site_name,
             setup_options=setup_options,
         )
     except ValueError as exc:
-        return setup_response(build_setup_page(str(exc), data), 400)
+        return setup_response(build_setup_page(str(exc), data, locale), 400)
 
     if "application/json" in request.headers.get("accept", ""):
         return APIResponse(detail={"ok": True, "admin": "/#/admin"})
-    return setup_response(build_setup_success_page())
+    return setup_response(build_setup_success_page(locale))
 
 
 def resolve_theme_root():

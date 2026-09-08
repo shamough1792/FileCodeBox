@@ -32,6 +32,17 @@ class FakeRateLimit:
 
 
 class ShareUsageSecurityTests(unittest.TestCase):
+    def test_setup_page_supports_traditional_chinese(self):
+        page = build_setup_page(locale="zh-TW")
+
+        self.assertIn("初始化 FileCodeBox", page)
+        self.assertIn("網站名稱", page)
+        self.assertIn("完成初始化", page)
+        self.assertIn("隨機字元", page)
+        self.assertIn("按小時", page)
+        self.assertNotIn("站点名称", page)
+        self.assertNotIn("随机字符", page)
+
     def test_new_installations_default_to_secret_codes(self):
         self.assertEqual(DEFAULT_CONFIG["code_generate_type"], "secret")
         self.assertEqual(
