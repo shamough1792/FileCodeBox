@@ -1,6 +1,9 @@
 name: Build and push Docker image
 
 on:
+  permissions:
+    contents: read
+    packages: write
   workflow_dispatch:
     inputs:
       release_tag:
@@ -11,11 +14,12 @@ on:
     branches:
       - master
       - dev
+      - zh-tw
     tags:
       - 'v*'
 
 env:
-  REGISTRY_IMAGE: ${{ secrets.DOCKER_USERNAME }}/filecodebox
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/filecodebox-zh-tw
 
 jobs:
   buildx:
@@ -71,7 +75,7 @@ jobs:
         id: frontend-revisions
         shell: bash
         run: |
-          frontend_2024_ref="$(git ls-remote https://github.com/vastsa/FileCodeBoxFronted.git HEAD | cut -f1)"
+          frontend_2024_ref="$(git ls-remote https://github.com/${{ github.repository_owner }}/FileCodeBoxFronted.git refs/heads/zh-tw | cut -f1)"
           frontend_2023_ref="$(git ls-remote https://github.com/vastsa/FileCodeBoxFronted2023.git HEAD | cut -f1)"
           test -n "$frontend_2024_ref"
           test -n "$frontend_2023_ref"
@@ -101,11 +105,12 @@ jobs:
             image=moby/buildkit:latest
             network=host
 
-      - name: Login to DockerHub
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -118,6 +123,7 @@ jobs:
           build-args: |
             APP_VERSION=${{ steps.app-version.outputs.value }}
             VCS_REF=${{ steps.source-revision.outputs.value }}
+            FRONTEND_2024_REPO=https://github.com/${{ github.repository_owner }}/FileCodeBoxFronted.git
             FRONTEND_2024_REF=${{ steps.frontend-revisions.outputs.frontend_2024 }}
             FRONTEND_2023_REF=${{ steps.frontend-revisions.outputs.frontend_2023 }}
           cache-from: type=gha
