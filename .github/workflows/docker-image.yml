@@ -1,9 +1,6 @@
 name: Build and push Docker image
 
 on:
-  permissions:
-    contents: read
-    packages: write
   workflow_dispatch:
     inputs:
       release_tag:
@@ -17,6 +14,10 @@ on:
       - zh-tw
     tags:
       - 'v*'
+
+permissions:
+  contents: read
+  packages: write
 
 env:
   REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/filecodebox-zh-tw
