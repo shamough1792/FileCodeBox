@@ -27,10 +27,10 @@ By default, the admin panel entry is not shown on the homepage. You can control 
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `showAdminAddr` | int | `0` | Show admin entry on homepage (1=show, 0=hide) |
+| `show_admin_addr` | int | `0` | Show admin entry on homepage (1=show, 0=hide) |
 
 ::: warning Security Recommendation
-For public services, it's recommended to keep `showAdminAddr` at `0` and access the admin panel directly via the `/admin` path to reduce the risk of malicious scanning.
+For public services, it's recommended to keep `show_admin_addr` at `0` and access the admin panel directly via the `/admin` path to reduce the risk of malicious scanning.
 :::
 
 ### Authentication Mechanism
@@ -166,49 +166,50 @@ When modifying extraction codes, the system checks if the new code is already in
 
 ## Local File Management
 
-In addition to managing shared files, the admin panel also provides local file management functionality for managing files in the `data/local` directory.
+In addition to managing shared files, the admin panel has a Local Share page for browsing `data/local` (including subfolders) and minting extract codes.
+
+Mount a NAS share at `/app/data/local` to generate extract codes for files already on disk, without downloading and re-uploading them.
+
+```yaml
+volumes:
+  - fcb-data:/app/data:rw
+  # Read-only NAS share for admin browsing and extract-code generation
+  - /volume1/share:/app/data/local:ro
+```
 
 ### View Local Files
 
-The local file list displays all files in the `data/local` directory:
+The Local Share page supports nested folders. List API:
 
-| Information | Description |
-|-------------|-------------|
-| Filename | Complete filename |
-| Creation Time | File creation time |
-| File Size | File size (bytes) |
+```
+GET /admin/local/lists?path=movies
+```
+
+`path` is relative to `data/local`; leave it empty for the root. Response:
+
+| Field | Description |
+|------|------|
+| `path` | Current directory |
+| `parent` | Parent directory |
+| `truncated` | Whether the listing was truncated |
+| `items[].type` | `dir` or `file` |
+| `items[].path` | Path relative to `data/local`, used as `filename` when sharing |
 
 ### Share Local Files
 
-You can quickly share local files:
-
-1. Select the file to share in the local file list
+1. Open the target subfolder and pick a file
 2. Set expiration method and value
-3. Click the share button
-4. System generates extraction code
+3. Create an extract code
+
+Sharing is a **zero-copy reference**: the file is not copied into `data/share` and does not count against storage quota. Expiring or deleting the share record **does not delete the original NAS file**.
 
 **Share parameters:**
 
 | Parameter | Description |
 |-----------|-------------|
-| `filename` | Filename to share |
+| `filename` | Path relative to `data/local`, e.g. `movies/a.mp4` |
 | `expire_style` | Expiration method (day/hour/minute/forever/count) |
 | `expire_value` | Expiration value (days/hours/minutes/download count) |
-
-### Delete Local Files
-
-You can delete files in the `data/local` directory:
-
-1. Find the file to delete in the local file list
-2. Click the delete button
-3. Confirm deletion
-
-::: tip Use Cases
-Local file management is useful for:
-- Sharing files after batch uploading to the server
-- Managing files uploaded to the server through other means
-- Cleaning up unnecessary local files
-:::
 
 ## System Settings
 
@@ -240,15 +241,15 @@ Administrators can modify most configurations through the admin panel:
 | Category | Example Settings |
 |----------|------------------|
 | Basic Settings | `name`, `description`, `keywords`, `notify_title`, `notify_content` |
-| Upload Settings | `uploadSize`, `uploadMinute`, `uploadCount`, `openUpload`, `enableChunk` |
-| Expiration Settings | `expireStyle`, `max_save_seconds` |
-| Theme Settings | `themesSelect`, `opacity`, `background` |
-| Security Settings | `admin_token`, `showAdminAddr`, `errorMinute`, `errorCount` |
+| Upload Settings | `upload_size`, `upload_minute`, `upload_count`, `open_upload`, `enable_chunk` |
+| Expiration Settings | `expire_style`, `max_save_seconds` |
+| Theme Settings | `themes_select`, `opacity`, `background` |
+| Security Settings | `admin_token`, `show_admin_addr`, `error_minute`, `error_count` |
 | Storage Settings | `file_storage`, `storage_path` and storage backend-specific configurations |
 
 ::: warning Note
 - `admin_token` (admin password) cannot be set to empty
-- `themesChoices` (theme list) cannot be modified through the admin panel
+- `themes_choices` (theme list) cannot be modified through the admin panel
 - After modifying storage settings, existing files will not be automatically migrated
 :::
 
@@ -338,7 +339,7 @@ Content-Type: application/json
 
 **Get Local File List**
 ```
-GET /admin/local/lists
+GET /admin/local/lists?path=movies
 Authorization: Bearer <token>
 ```
 
@@ -349,7 +350,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt"
+    "filename": "movies/example.txt"
 }
 ```
 
@@ -360,7 +361,7 @@ Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-    "filename": "example.txt",
+    "filename": "movies/example.txt",
     "expire_style": "day",
     "expire_value": 7
 }
@@ -382,7 +383,7 @@ Content-Type: application/json
 
 {
     "admin_token": "new-password",
-    "uploadSize": 52428800
+    "upload_size": 52428800
 }
 ```
 

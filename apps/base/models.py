@@ -2,13 +2,13 @@
 # @Author  : Lan
 # @File    : models.py
 # @Software: PyCharm
-from typing import Optional
+
+from typing import Any
 
 from tortoise.models import Model
 from tortoise.contrib.pydantic import pydantic_model_creator
 
 from tortoise import fields, models
-from datetime import datetime
 from core.utils import get_now
 
 
@@ -22,7 +22,9 @@ class FileCodes(models.Model):
     size = fields.BigIntField(default=0)
     text = fields.TextField(null=True)
     expired_at = fields.DatetimeField(null=True)
-    expired_count = fields.IntField(default=0)
+    # -1 = 时间式（看 expired_at），<=0 的 0 = 次数耗尽。默认 -1 而非 0：
+    # 0 语义是"次数已用完即过期"，忘传该字段的创建路径会得到立即过期的记录。
+    expired_count = fields.IntField(default=-1)
     used_count = fields.IntField(default=0)
     created_at = fields.DatetimeField(auto_now_add=True)
     file_hash = fields.CharField(max_length=64, null=True)
@@ -55,14 +57,13 @@ class UploadChunk(models.Model):
 
 
 class KeyValue(Model):
-    id: Optional[int] = fields.IntField(pk=True)
-    key: Optional[str] = fields.CharField(
-        max_length=255, description="键", index=True, unique=True
-    )
-    value: Optional[str] = fields.JSONField(description="值", null=True)
-    created_at: Optional[datetime] = fields.DatetimeField(
-        auto_now_add=True, description="创建时间"
-    )
+    # 与 FileCodes 保持同一风格：类属性不写值注解（等号右侧的 Field 描述符
+    # 才是类级真身；实例级由 tortoise 运行时给出对应 Python 值）
+    id = fields.IntField(pk=True)
+    key = fields.CharField(max_length=255, description="键", index=True, unique=True)
+    # JSONField 实际承载 dict/list（如 settings 配置）
+    value: Any = fields.JSONField(description="值", null=True)
+    created_at = fields.DatetimeField(auto_now_add=True, description="创建时间")
 
 
 class PresignUploadSession(models.Model):
