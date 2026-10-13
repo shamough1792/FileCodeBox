@@ -31,7 +31,7 @@ RUN git clone --filter=blob:none --no-checkout "${FRONTEND_2023_REPO}" /build/fr
     npm run build
 
 # 第二阶段：构建最终镜像
-FROM python:3.12-slim-bookworm
+FROM python:3.14-slim-bookworm
 ARG APP_VERSION
 ARG VCS_REF=unknown
 ARG FRONTEND_2024_REF=main
